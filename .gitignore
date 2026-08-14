@@ -10,7 +10,9 @@
 # Local Test Files & Benchmarks (Ignored from Git)
 BENCHMARK_RESULTS.md
 test_payload.json
+test_payload_full.json
 output_test_live.mp4
+output_full_period.mp4
 
 # Outputs & Temporary Files
 *.mp4
