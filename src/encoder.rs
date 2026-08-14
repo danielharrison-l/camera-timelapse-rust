@@ -45,10 +45,14 @@ impl FfmpegEncoder {
             fs::create_dir_all(parent)?;
         }
 
-        let scale_filter = scale.unwrap_or("scale=1280:720");
+        let scale_filter = match scale {
+            Some(s) if s.starts_with("scale=") => s.to_string(),
+            Some(s) => format!("scale={}", s),
+            None => "scale=1280:720".to_string(),
+        };
 
         if total_frames < 20 {
-            return self.encode_single(frames_dir, output_mp4, fps, scale_filter);
+            return self.encode_single(frames_dir, output_mp4, fps, &scale_filter);
         }
 
         let num_chunks = 4;

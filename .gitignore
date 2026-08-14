@@ -7,6 +7,11 @@
 .env.local
 *.env
 
+# Local Test Files & Benchmarks (Ignored from Git)
+BENCHMARK_RESULTS.md
+test_payload.json
+output_test_live.mp4
+
 # Outputs & Temporary Files
 *.mp4
 *.ts
