@@ -1,0 +1,61 @@
+use serde::{Deserialize, Serialize};
+
+/// Evento recebido da fila SQS `camera-timelapse-inbound` (enviado pela Fiscaliza API)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InboundTimelapseEvent {
+    /// ID único do job / requisição gerado pela Fiscaliza API
+    pub job_id: String,
+    /// Nome da pasta no SFTP (ex: "2026_07_28-2026_07_28" ou "2026_08_09-2026_09_07")
+    pub session: String,
+    /// Identificador opcional da câmera no Fiscaliza
+    #[serde(default)]
+    pub camera_id: Option<String>,
+    /// FPS do vídeo final (padrão: 10)
+    #[serde(default)]
+    pub fps: Option<u32>,
+    /// Resolução forçada opcional (ex: "1280:720")
+    #[serde(default)]
+    pub scale: Option<String>,
+    /// Limite opcional dos N primeiros frames
+    #[serde(default)]
+    pub limit: Option<usize>,
+    /// Nome do bucket S3 customizado de destino (opcional)
+    #[serde(default)]
+    pub s3_bucket: Option<String>,
+    /// Chave/Caminho no S3 customizado de destino (opcional)
+    #[serde(default)]
+    pub s3_key: Option<String>,
+}
+
+/// Evento publicado na fila SQS `camera-timelapse-outbound` (consumido pela Fiscaliza API)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OutboundTimelapseEvent {
+    /// ID do job correspondente
+    pub job_id: String,
+    /// Status do processamento: "COMPLETED" ou "FAILED"
+    pub status: String,
+    /// Nome da pasta / sessão processada
+    pub session: String,
+    /// Câmera vinculada
+    pub camera_id: Option<String>,
+    /// Bucket onde o arquivo MP4 foi salvo no S3
+    pub s3_bucket: Option<String>,
+    /// Chave do objeto no S3 (ex: "videos/2026_07_28-2026_07_28.mp4")
+    pub s3_key: Option<String>,
+    /// URL pública/endpoint para acesso ao arquivo MP4
+    pub s3_url: Option<String>,
+    /// Tamanho do vídeo em bytes
+    pub file_size_bytes: u64,
+    /// Tempo total gasto no processamento em segundos
+    pub duration_seconds: f64,
+    /// Quantidade total de fotos/frames codificados
+    pub total_frames: usize,
+    /// Frames por segundo (FPS) do vídeo final
+    pub fps: u32,
+    /// Data/hora de conclusão (ISO 8601 UTC)
+    pub processed_at: String,
+    /// Mensagem de erro caso o status seja "FAILED"
+    pub error: Option<String>,
+}

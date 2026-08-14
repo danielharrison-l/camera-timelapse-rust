@@ -1,0 +1,17 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# Environment & Secrets
+.env
+.env.local
+*.env
+
+# Outputs & Temporary Files
+*.mp4
+*.ts
+*.jpg
+*.jpeg
+/temp_output/
+.DS_Store
+Thumbs.db
