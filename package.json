@@ -1,0 +1,13 @@
+{
+  "name": "camera-timelapse-rust",
+  "version": "1.0.0",
+  "description": "Microserviço Event-Driven Rust Timelapse",
+  "scripts": {
+    "start": "cargo run --release",
+    "standalone": "cargo run --release -- --cli",
+    "test": "cargo test",
+    "docker:build": "docker build -t camera-timelapse-rust:latest .",
+    "docker:standalone": "docker run --rm --env-file .env -v .:/app camera-timelapse-rust:latest --cli",
+    "docker:compose": "docker compose up --build -d"
+  }
+}

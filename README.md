@@ -30,13 +30,16 @@ Publicado pela **Fiscaliza API**:
   "jobId": "job-8f921a-2026",
   "session": "2026_07_28-2026_07_28",
   "cameraId": "cam-garagem-01",
-  "fps": 12,
-  "scale": "1280:720",
-  "limit": null,
-  "s3Bucket": "cameras-videos-bucket",
-  "s3Key": "videos/2026_07_28-2026_07_28.mp4"
+  "sftpHost": "sftp.dev.vision360.app.br",
+  "sftpPort": 22,
+  "sftpUsername": "v1:IV_BASE64:TAG_BASE64:ENCRYPTED_USER_BASE64",
+  "sftpPassword": "v1:IV_BASE64:TAG_BASE64:ENCRYPTED_PASS_BASE64",
+  "sftpRoot": "/",
+  "limit": null
 }
 ```
+
+> **Nota**: `sftpUsername` e `sftpPassword` são transmitidos criptografados via **AES-256-GCM** e descriptografados pelo microserviço Rust utilizando a chave definida na variável de ambiente `RTSP_ENC_KEY` (compatível com a `RtspCipher` do `fiscaliza-api`).
 
 ---
 
@@ -51,12 +54,12 @@ Emitido pelo **Rust Microservice** ao finalizar o processamento (consumido pela 
   "session": "2026_07_28-2026_07_28",
   "cameraId": "cam-garagem-01",
   "s3Bucket": "cameras-videos-bucket",
-  "s3Key": "videos/2026_07_28-2026_07_28.mp4",
-  "s3Url": "http://localhost:4566/cameras-videos-bucket/videos/2026_07_28-2026_07_28.mp4",
+  "s3Key": "videos/job-8f921a-2026/2026_07_28-2026_07_28.mp4",
+  "s3Url": "http://localhost:4566/cameras-videos-bucket/videos/job-8f921a-2026/2026_07_28-2026_07_28.mp4",
   "fileSizeBytes": 10758421,
   "durationSeconds": 17.99,
   "totalFrames": 2454,
-  "fps": 12,
+  "fps": 30,
   "processedAt": "2026-08-14T14:15:00Z",
   "error": null
 }
@@ -64,7 +67,53 @@ Emitido pelo **Rust Microservice** ao finalizar o processamento (consumido pela 
 
 ---
 
-## 🚀 Como Executar
+## 📚 Documentação Detalhada (`docs/`)
+
+Para guias passo a passo avançados, consulte os documentos na pasta [`docs/`](file:///c:/Users/daniellima/code/teste/camera-timelapse-rust/docs):
+- 🚀 [**docs/EXECUCAO.md**](file:///c:/Users/daniellima/code/teste/camera-timelapse-rust/docs/EXECUCAO.md): Guia completo de execução (Docker, NPM, Cargo, Docker Compose e Modo Standalone CLI).
+- 🔐 [**docs/DESCRIPTOGRAFIA_AES256.md**](file:///c:/Users/daniellima/code/teste/camera-timelapse-rust/docs/DESCRIPTOGRAFIA_AES256.md): Protocolo de criptografia AES-256-GCM (`RTSP_ENC_KEY`) e integração de credenciais dinâmicas do SFTP com a **Fiscaliza API**.
+
+---
+
+## 🐳 3. Como Executar (Docker, NPM ou Nativo)
+
+### Opção A: Via NPM Scripts (Mais Fácil)
+
+```bash
+# Rodar o teste Standalone CLI no Docker (Baixa do SFTP e gera MP4 na máquina host)
+npm run docker:build
+npm run docker:standalone
+
+# Subir a aplicação em background escutando a fila SQS
+npm run docker:compose
+```
+
+### Opção B: Docker CLI Direto
+
+```bash
+# 1. Build da imagem Docker multi-stage
+docker build -t camera-timelapse-rust:latest .
+
+# 2. Modo Standalone CLI (Sem SQS)
+docker run --rm --env-file .env -v .:/app camera-timelapse-rust:latest --cli
+
+# 3. Modo Worker (Escutando SQS)
+docker run --rm --env-file .env camera-timelapse-rust:latest
+```
+
+### Opção C: Docker Compose
+
+```bash
+# Subir o microserviço em background:
+docker compose up -d
+
+# Executar modo Standalone CLI via Compose:
+docker compose run --rm camera-timelapse --cli
+```
+
+---
+
+## 🚀 Como Executar Localmente (Sem Docker)
 
 ### 1. Inicializar Filas SQS e Bucket S3 no LocalStack
 ```bash
@@ -78,7 +127,7 @@ cargo run --release
 
 ### 3. Simular Envio de Requisição (Fiscaliza API -> Inbound SQS)
 ```bash
-./scripts/localstack.sh send-inbound '{"jobId":"job-001","session":"2026_07_28-2026_07_28","fps":12}'
+./scripts/localstack.sh send-inbound '{"jobId":"job-001","session":"2026_07_28-2026_07_28"}'
 ```
 
 ### 4. Ler o Evento de Conclusão na Fila Outbound SQS

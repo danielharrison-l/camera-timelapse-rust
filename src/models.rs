@@ -11,21 +11,21 @@ pub struct InboundTimelapseEvent {
     /// Identificador opcional da câmera no Fiscaliza
     #[serde(default)]
     pub camera_id: Option<String>,
-    /// FPS do vídeo final (padrão: 10)
+    /// Host do servidor SFTP da câmera (opcional, fallback para env)
     #[serde(default)]
-    pub fps: Option<u32>,
-    /// Resolução forçada opcional (ex: "1280:720")
+    pub sftp_host: Option<String>,
+    /// Porta do servidor SFTP (opcional, fallback para env)
     #[serde(default)]
-    pub scale: Option<String>,
-    /// Limite opcional dos N primeiros frames
+    pub sftp_port: Option<u16>,
+    /// Usuário do SFTP cifrado com RTSP_ENC_KEY (opcional, fallback para env)
+    #[serde(default)]
+    pub sftp_username: Option<String>,
+    /// Senha do SFTP cifrada com RTSP_ENC_KEY (opcional, fallback para env)
+    #[serde(default)]
+    pub sftp_password: Option<String>,
+    /// Limite opcional dos N primeiros frames (útil para testes/desenvolvimento)
     #[serde(default)]
     pub limit: Option<usize>,
-    /// Nome do bucket S3 customizado de destino (opcional)
-    #[serde(default)]
-    pub s3_bucket: Option<String>,
-    /// Chave/Caminho no S3 customizado de destino (opcional)
-    #[serde(default)]
-    pub s3_key: Option<String>,
 }
 
 /// Evento publicado na fila SQS `camera-timelapse-outbound` (consumido pela Fiscaliza API)

@@ -13,6 +13,14 @@ use tracing::{info, warn};
 use crate::config::Config;
 
 #[derive(Debug, Clone)]
+pub struct SftpConfig {
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct RemoteFileJob {
     pub index: usize,
     pub remote_path: String,
@@ -21,21 +29,21 @@ pub struct RemoteFileJob {
 
 #[derive(Clone)]
 pub struct SftpDownloader {
-    config: Arc<Config>,
+    _config: Arc<Config>,
 }
 
 impl SftpDownloader {
     pub fn new(config: Arc<Config>) -> Self {
-        Self { config }
+        Self { _config: config }
     }
 
-    pub fn connect(&self) -> Result<(Session, ssh2::Sftp)> {
+    pub fn connect(&self, sftp_cfg: &SftpConfig) -> Result<(Session, ssh2::Sftp)> {
         let max_retries = 5;
         let mut attempt = 0;
 
         loop {
             attempt += 1;
-            let addr = format!("{}:{}", self.config.sftp_host, self.config.sftp_port);
+            let addr = format!("{}:{}", sftp_cfg.host, sftp_cfg.port);
             match TcpStream::connect(&addr) {
                 Ok(tcp) => {
                     let _ = tcp.set_nodelay(true);
@@ -52,7 +60,7 @@ impl SftpDownloader {
                         return Err(anyhow!("Handshake SSH falhou após retries: {}", e));
                     }
 
-                    sess.userauth_password(&self.config.sftp_username, &self.config.sftp_password)?;
+                    sess.userauth_password(&sftp_cfg.username, &sftp_cfg.password)?;
                     let sftp = sess.sftp()?;
                     return Ok((sess, sftp));
                 }
@@ -105,27 +113,25 @@ impl SftpDownloader {
 
     pub async fn download_frames(
         &self,
+        sftp_cfg: &SftpConfig,
         session_folder: &str,
         output_dir: &Path,
         limit: Option<usize>,
     ) -> Result<usize> {
         fs::create_dir_all(output_dir)?;
 
-        let (_sess, sftp) = self.connect()?;
+        let (_sess, sftp) = self.connect(sftp_cfg)?;
         let is_all = session_folder.eq_ignore_ascii_case("all")
             || session_folder.eq_ignore_ascii_case("*")
             || session_folder.eq_ignore_ascii_case("full_period")
             || session_folder.contains('-') && session_folder != "2026_07_28-2026_07_28" && session_folder != "2026_07_29-2026_07_29" && session_folder != "2026_07_30-2026_07_30" && session_folder != "2026_07_31-2026_07_31" && session_folder != "2026_08_01-2026_08_01" && session_folder != "2026_08_02-2026_08_02" && session_folder != "2026_08_09-2026_09_07";
 
-        let mut discovered_files: Vec<(String, u64)> = Vec::new();
-
-        if is_all || session_folder == "2026_07_28-2026_09_07" {
-            let root_path = self.config.sftp_root.clone();
-            discovered_files = self.discover_files_recursive(&sftp, &root_path, 0)?;
+        let mut discovered_files = if is_all || session_folder == "2026_07_28-2026_09_07" {
+            self.discover_files_recursive(&sftp, "/", 0)?
         } else {
-            let remote_path = format!("{}/{}", self.config.sftp_root.trim_end_matches('/'), session_folder);
-            discovered_files = self.discover_files_recursive(&sftp, &remote_path, 0)?;
-        }
+            let remote_path = format!("/{}", session_folder.trim_start_matches('/'));
+            self.discover_files_recursive(&sftp, &remote_path, 0)?
+        };
 
         discovered_files.sort_by(|a, b| a.0.cmp(&b.0));
 
@@ -138,7 +144,7 @@ impl SftpDownloader {
             return Err(anyhow!("Nenhuma imagem encontrada para a sessão: {}", session_folder));
         }
 
-        info!("SFTP: Baixando TOTAL de {} imagens via Tokio MPSC Work-Stealing Workers", total_files);
+        info!("SFTP: Baixando TOTAL de {} imagens via Tokio MPSC Work-Stealing Workers (Host: {})", total_files, sftp_cfg.host);
 
         let total_bytes = Arc::new(AtomicU64::new(0));
         let (tx, rx) = mpsc::channel::<RemoteFileJob>(total_files);
@@ -162,9 +168,10 @@ impl SftpDownloader {
             let downloader_clone = self.clone();
             let out_dir_clone = output_dir.to_path_buf();
             let total_bytes_clone = Arc::clone(&total_bytes);
+            let sftp_cfg_clone = sftp_cfg.clone();
 
             let handle = tokio::spawn(async move {
-                let (_sess, thread_sftp) = match downloader_clone.connect() {
+                let (_sess, thread_sftp) = match downloader_clone.connect(&sftp_cfg_clone) {
                     Ok(c) => c,
                     Err(e) => {
                         warn!("Worker SFTP {} falhou ao conectar: {:?}", worker_id, e);

@@ -6,6 +6,7 @@ use tokio::io::AsyncWriteExt;
 use tokio::process::Command as TokioCommand;
 use tracing::info;
 
+#[derive(Debug, Clone)]
 pub struct FfmpegEncoder {
     ffmpeg_path: String,
 }

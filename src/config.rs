@@ -6,7 +6,6 @@ pub struct Config {
     pub sftp_port: u16,
     pub sftp_username: String,
     pub sftp_password: String,
-    pub sftp_root: String,
 
     pub sqs_inbound_queue_url: String,
     pub sqs_outbound_queue_url: String,
@@ -18,6 +17,8 @@ pub struct Config {
 
     pub aws_region: String,
     pub aws_endpoint_url: Option<String>,
+
+    pub rtsp_enc_key: Option<String>,
 
     pub ffmpeg_path: String,
     pub worker_concurrency: usize,
@@ -35,7 +36,6 @@ impl Config {
                 .unwrap_or(22),
             sftp_username: env::var("SFTP_USERNAME").unwrap_or_else(|_| "camera_garagem".to_string()),
             sftp_password: env::var("SFTP_PASSWORD").unwrap_or_else(|_| "senhaGaragem456!".to_string()),
-            sftp_root: env::var("SFTP_ROOT").unwrap_or_else(|_| "/".to_string()),
 
             sqs_inbound_queue_url: env::var("SQS_INBOUND_QUEUE_URL").unwrap_or_else(|_| {
                 "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/camera-timelapse-inbound".to_string()
@@ -57,6 +57,8 @@ impl Config {
 
             aws_region: env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".to_string()),
             aws_endpoint_url: env::var("AWS_ENDPOINT_URL").ok().filter(|s| !s.is_empty()),
+
+            rtsp_enc_key: env::var("RTSP_ENC_KEY").ok().filter(|s| !s.is_empty()),
 
             ffmpeg_path: env::var("FFMPEG_PATH").unwrap_or_else(|_| "ffmpeg".to_string()),
             worker_concurrency: env::var("WORKER_CONCURRENCY")

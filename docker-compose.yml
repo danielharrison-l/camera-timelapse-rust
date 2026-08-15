@@ -1,0 +1,36 @@
+name: camera-timelapse-rust
+
+services:
+  # Microserviço Event-Driven Rust Timelapse
+  camera-timelapse-rust:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: camera-timelapse-rust
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - SQS_INBOUND_QUEUE_URL=http://localstack:4566/000000000000/camera-timelapse-inbound
+      - SQS_OUTBOUND_QUEUE_URL=http://localstack:4566/000000000000/camera-timelapse-outbound
+    volumes:
+      - ./temp_output:/app/temp_output
+    depends_on:
+      localstack:
+        condition: service_healthy
+
+  # LocalStack (Simulador Local de AWS SQS e S3)
+  localstack:
+    image: localstack/localstack:3
+    container_name: camera-timelapse-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs,s3
+      - AWS_DEFAULT_REGION=us-east-1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
